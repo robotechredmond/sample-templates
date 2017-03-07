@@ -1,0 +1,78 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "existingVirtualNetworkRGName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Resource Group in the existing virtual network is provisioned."
+            }
+        },
+        "existingVirtualNetworkName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the existing virtual network."
+            }
+        },
+        "gatewayPublicIPName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource name given to the public IP attached to the gateway."
+            }
+        },
+        "gatewayName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource name given to the ExpressRoute gateway."
+            }
+        }
+    },
+    "variables": {
+        "gatewayType": "ExpressRoute",
+        "gatewaySku": "UltraPerformance",
+        "gatewayTier": "UltraPerformance",
+        "gatewaySubnetName": "GatewaySubnet",
+        "gatewaySubnetRef": "[resourceId(parameters('existingVirtualNetworkRGName'),'Microsoft.Network/virtualNetworks/subnets',parameters('existingVirtualNetworkName'),variables('gatewaySubnetName'))]"
+    },
+    "resources": [
+      {
+        "apiVersion": "2015-06-15",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "name": "[parameters('gatewayPublicIPName')]",
+        "location": "[resourceGroup().location]",
+        "properties": {
+          "publicIPAllocationMethod": "Dynamic"
+        }
+      },
+      {
+        "apiVersion": "2015-06-15",
+        "type": "Microsoft.Network/virtualNetworkGateways",
+        "name": "[parameters('gatewayName')]",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[concat('Microsoft.Network/publicIPAddresses/', parameters('gatewayPublicIPName'))]"
+        ],
+        "properties": {
+          "ipConfigurations": [
+            {
+              "properties": {
+                "privateIPAllocationMethod": "Dynamic",
+                "subnet": {
+                  "id": "[variables('gatewaySubnetRef')]"
+                },
+                "publicIPAddress": {
+                  "id": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('gatewayPublicIPName'))]"
+                }
+              },
+              "name": "vnetGatewayConfig"
+            }
+          ],
+          "gatewayType": "[variables('gatewayType')]",
+          "sku": {
+            "name": "[variables('gatewaySku')]",
+            "tier": "[variables('gatewayTier')]"
+          } 
+        }
+      }
+    ]
+}
