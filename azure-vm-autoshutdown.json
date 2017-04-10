@@ -1,0 +1,114 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of VM to set auto-shutdown schedule"
+            }
+        },
+        "enableAutoShutdown": {
+            "type": "string",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "defaultValue": "Enabled",
+            "metadata": {
+                "description": "Enable or Disable Automated Shutdown"
+            }
+        },
+        "autoShutdownTime": {
+            "type": "string",
+            "allowedValues": [
+                "0100",
+                "0200",
+                "0300",
+                "0400",
+                "0500",
+                "0600",
+                "0700",
+                "0800",
+                "0900",
+                "1000",
+                "1100",
+                "1200",
+                "1300",
+                "1400",
+                "1500",
+                "1600",
+                "1700",
+                "1800",
+                "1900",
+                "2000",
+                "2100",
+                "2200",
+                "2300"
+            ],
+            "defaultValue": "1900",
+            "metadata": {
+                "description": "Automated shutdown time, if enabled, in 24-hour time format"
+            }
+        },
+        "timeZone": {
+            "type": "string",
+            "defaultValue": "Eastern Standard Time",
+            "metadata": {
+                "description": "Time Zone for locally processing automated shutdown time"
+            }
+        },
+        "enableAutoShutdownNotify": {
+            "type": "string",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "defaultValue": "Disabled",
+            "metadata": {
+                "description": "Enable or Disable Automated Shutdown notification via Webhook"
+            }
+        },
+        "autoShutdownNotifyTimeInterval": {
+            "type": "int",
+            "minValue": 15,
+            "maxValue": 60,
+            "defaultValue": 15,
+            "metadata": {
+                "description": "Automated shutdown notification time internal in minutes prior to shutdown"
+            }
+        },
+        "autoShutdownNotifyWebhookUrl": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Webhook URL to call if automated shutdown notification is enabled"
+            }
+        }
+    },
+    "variables": {
+        "vmNameLower": "[toLower(parameters('vmName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat('shutdown-computevm-',variables('vmNameLower'))]",
+            "type": "Microsoft.DevTestLab/schedules",
+            "location": "[resourceGroup().Location]",
+            "apiVersion": "2016-05-15",
+            "properties": {
+                "status": "[parameters('enableAutoShutdown')]",
+                "taskType": "ComputeVmShutdownTask",
+                "dailyRecurrence": {
+                    "time": "[parameters('autoShutdownTime')]"
+                },
+                "timeZoneId": "[parameters('timeZone')]",
+                "notificationSettings": {
+                    "status": "[parameters('enableAutoShutdownNotify')]",
+                    "timeInMinutes": "[parameters('autoShutdownNotifyTimeInterval')]",
+                    "webhookUrl": "[parameters('autoShutdownNotifyWebhookUrl')]"
+                },
+                "targetResourceId": "[resourceId(resourceGroup().name,'Microsoft.Compute/virtualMachines',variables('vmNameLower'))]"
+            }
+        }
+    ]
+}
