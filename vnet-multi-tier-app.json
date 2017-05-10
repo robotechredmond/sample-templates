@@ -1,0 +1,72 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "name": {
+            "type": "string"
+        },
+        "siteId": {
+            "type": "string",
+            "defaultValue": "1"
+        }
+    },
+    "resources": [
+        {
+            "apiVersion": "2016-06-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('name')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[concat('10.', parameters('siteId'), '.0.0/16')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "OutsideSubnet",
+                        "properties": {
+                            "addressPrefix": "[concat('10.', parameters('siteId'), '.0.0/24')]"
+                        }
+                    },
+                    {
+                        "name": "WebSubnet",
+                        "properties": {
+                            "addressPrefix": "[concat('10.', parameters('siteId'), '.1.0/24')]"
+                        }
+                    },
+                    {
+                        "name": "AppSubnet",
+                        "properties": {
+                            "addressPrefix": "[concat('10.', parameters('siteId'), '.2.0/24')]"
+                        }
+                    },
+                    {
+                        "name": "WorkerSubnet",
+                        "properties": {
+                            "addressPrefix": "[concat('10.', parameters('siteId'), '.3.0/24')]"
+                        }
+                    },
+                    {
+                        "name": "DataSubnet",
+                        "properties": {
+                            "addressPrefix": "[concat('10.', parameters('siteId'), '.4.0/24')]"
+                        }
+                    },
+                    {
+                        "name": "CoreSubnet",
+                        "properties": {
+                            "addressPrefix": "[concat('10.', parameters('siteId'), '.5.0/24')]"
+                        }
+                    },
+                    {
+                        "name": "GatewaySubnet",
+                        "properties": {
+                            "addressPrefix": "[concat('10.', parameters('siteId'), '.6.0/24')]"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
