@@ -1,0 +1,27 @@
+"storageProfile": {
+  "imageReference": {
+    "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.Compute/images/userImage",
+  },
+  "osDisk": {
+   "name": "myosdisk",
+    "caching": "ReadWrite",
+    "createOption": "fromImage",
+    "storageAccountType": "Premium_LRS" 
+    },
+  "dataDisks": [
+    {
+      "name": "mydatadisk1",
+      "diskSizeGB": "10",
+      "lun": 0,
+      "createOption": "fromImage",
+      "storageAccountType": "Premium_LRS"
+    },
+    {
+      "name": "mydatadisk2",
+      "diskSizeGB": "100",
+      "lun": 1,
+      "createOption": "fromImage",
+      "storageAccountType": "Standard_LRS"
+    }
+  ]
+}, 
