@@ -39,9 +39,6 @@
     "diagnosticsStorageAccountName": {
         "type": "string"
     },
-    "diagnosticsStorageAccountId": {
-        "type": "string"
-    },
     "diagnosticsStorageAccountType": {
         "type": "string"
     }
@@ -359,7 +356,7 @@
                     },
                     "protectedSettings": {
                         "storageAccountName": "[parameters('diagnosticsStorageAccountName')]",
-                        "storageAccountKey": "[listKeys(parameters('diagnosticsStorageAccountId'),'2015-06-15').key1]",
+                        "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',parameters('diagnosticsStorageAccountName')),'2016-01-01').keys[0].value]",
                         "storageAccountEndPoint": "https://core.windows.net/"
                     }
                 }
