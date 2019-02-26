@@ -1,0 +1,101 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "deployment-prefix": {
+            "type": "String",
+            "metadata": {
+                "description": "Deployment prefix. E.g. Organization-DeploymentType"
+            }
+        },
+        "deployment-name": {
+            "type": "String",
+            "metadata": {
+                "description": "Deployment name"
+            }
+        },
+        "data-retention": {
+            "defaultValue": 30,
+            "minValue": 7,
+            "maxValue": 730,
+            "type": "Int",
+            "metadata": {
+                "description": "Number of days data will be retained for."
+            }
+        }
+    },
+    "variables": {
+        "empty-array": [],
+        "uniqueString": "[uniqueString(parameters('deployment-name'), subscription().id, resourceGroup().id)]",
+        "diagnostic-storageAccount-prefix": "[concat(replace(parameters('deployment-name'), '-', ''), 'diag')]",
+        "diagnostic-storageAccount-name": "[toLower(substring(replace(concat(variables('diagnostic-storageAccount-prefix'), variables('uniqueString'), variables('uniqueString')), '-', ''), 0, 23) )]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "Storage",
+            "name": "[variables('diagnostic-storageAccount-name')]",
+            "apiVersion": "2017-06-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "layer": "management"
+            },
+            "properties": {
+                "mode": "Incremental",
+                "encryption": {
+                    "keySource": "Microsoft.Storage",
+                    "services": {
+                        "blob": {
+                            "enabled": true
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[concat(parameters('deployment-prefix'),'-nsg')]",
+            "apiVersion": "2017-09-01",
+            "location": "[resourceGroup().location]",
+            "properties": {},
+            "resources": [
+                {
+                    "type": "providers/diagnosticSettings",
+                    "name": "Microsoft.Insights/service",
+                    "apiVersion": "2015-07-01",
+                    "properties": {
+                        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('diagnostic-storageAccount-name'))]",
+                        "logs": [
+                            {
+                                "category": "NetworkSecurityGroupEvent",
+                                "enabled": true,
+                                "retentionPolicy": {
+                                    "days": "[parameters('data-retention')]",
+                                    "enabled": true
+                                }
+                            },
+                            {
+                                "category": "NetworkSecurityGroupRuleCounter",
+                                "enabled": true,
+                                "retentionPolicy": {
+                                    "days": "[parameters('data-retention')]",
+                                    "enabled": false
+                                }
+                            }
+                        ]
+                    },
+                    "dependsOn": [
+                        "[concat(parameters('deployment-prefix'), '-nsg')]"
+                    ]
+                }
+            ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('diagnostic-storageAccount-name'))]"
+            ]
+        }
+    ],
+    "outputs": {}
+}
