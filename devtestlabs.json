@@ -1,0 +1,207 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "labName": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "vnetAddressPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/16"
+        },
+        "subnetAddressPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/20"
+        },
+        "lbFrontEndPortStart": {
+            "type": "int",
+            "defaultValue": 3389
+        },
+        "lbBackEndPort": {
+            "type": "int",
+            "defaultValue": 3389
+        },
+        "numberOfVms": {
+            "type": "int",
+            "defaultValue": 1
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3"
+        },
+        "username": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "password": {
+            "type": "securestring"
+        }
+    },
+    "variables": {
+        "vnetName": "[concat('Dtl', parameters('labName'))]",
+        "vnetId": "[resourceId('Microsoft.DevTestLab/labs/virtualnetworks', parameters('labName'), variables('vnetName'))]",
+        "subnetName": "[concat(variables('vnetName'), 'Subnet')]",
+        "nsgName": "[concat(variables('vnetName'), '-nsg')]",
+        "nsgId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]",
+        "vmName": "[concat(parameters('labName'), 'vm')]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2018-10-15-preview",
+            "name": "[parameters('labName')]",
+            "type": "Microsoft.DevTestLab/labs",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "properties": {
+                "labStorageType": "Premium"
+            },
+            "resources": [
+                {
+                    "apiVersion": "2018-10-15-preview",
+                    "name": "LabVmsShutdown",
+                    "location": "[resourceGroup().location]",
+                    "type": "schedules",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DevTestLab/labs', parameters('labName'))]"
+                    ],
+                    "properties": {
+                        "status": "Enabled",
+                        "timeZoneId": "Eastern Standard Time",
+                        "dailyRecurrence": {
+                            "time": "1900"
+                        },
+                        "taskType": "LabVmsShutdownTask",
+                        "notificationSettings": {
+                            "status": "Disabled",
+                            "timeInMinutes": 30
+                        }
+                    }
+                },
+                {
+                    "apiVersion": "2018-10-15-preview",
+                    "name": "[variables('vnetName')]",
+                    "type": "virtualNetworks",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DevTestLab/labs', parameters('labName'))]"
+                    ]
+                },
+                {
+                    "apiVersion": "2018-10-15-preview",
+                    "name": "Public Environment Repo",
+                    "type": "artifactSources",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.DevTestLab/labs', parameters('labName'))]"
+                    ],
+                    "properties": {
+                        "status": "Disabled"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2018-12-01",
+            "name": "[variables('nsgName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "Deny-Traffic-Between-Lab-VMs",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "[parameters('subnetAddressPrefix')]",
+                            "destinationAddressPrefix": "[parameters('subnetAddressPrefix')]",
+                            "access": "Deny",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2018-12-01",
+            "name": "[variables('vnetName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[parameters('labName')]",
+                "[variables('nsgName')]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetAddressPrefix')]"
+                    ]
+                },
+                "dhcpOptions": {
+                    "dnsServers": []
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[variables('nsgId')]"
+                            },
+                            "serviceEndpoints": [],
+                            "delegations": []
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": [],
+                "enableDdosProtection": false,
+                "enableVmProtection": false
+            }
+        },
+        {
+            "apiVersion": "2018-10-15-preview",
+            "type": "Microsoft.DevTestLab/labs/virtualmachines",
+            "name": "[concat(parameters('labName'), '/', variables('vmName'), padLeft(copyIndex(), 2, '0'))]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[variables('vnetName')]"
+            ],
+            "copy": {
+                "name": "[variables('vmName')]",
+                "count": "[parameters('numberOfVms')]"
+            },
+            "properties": {
+                "labVirtualNetworkId": "[variables('vnetId')]",
+                "notes": "Windows 10 Enterprise N (x64)",
+                "galleryImageReference": {
+                    "offer": "Windows",
+                    "publisher": "microsoftvisualstudio",
+                    "sku": "Windows-10-N-x64",
+                    "osType": "Windows",
+                    "version": "latest"
+                },
+                "size": "[parameters('vmSize')]",
+                "userName": "[parameters('userName')]",
+                "password": "[parameters('password')]",
+                "isAuthenticationWithSshKey": false,
+                "labSubnetName": "[variables('subnetName')]",
+                "disallowPublicIpAddress": true,
+                "storageType": "Premium",
+                "allowClaim": true,
+                "networkInterface": {
+                    "sharedPublicIpAddressConfiguration": {
+                        "inboundNatRules": [
+                            {
+                                "transportProtocol": "Tcp",
+                                "frontendPort": "[copyIndex(parameters('lbFrontEndPortStart'))]",
+                                "backendPort": "[parameters('lbBackEndPort')]"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
