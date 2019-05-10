@@ -109,15 +109,41 @@
             "properties": {
                 "securityRules": [
                     {
-                        "name": "Deny-Traffic-Between-Lab-VMs",
+                        "name": "InboundFromInternet",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[parameters('lbBackEndPort')]",
+                            "sourceAddressPrefix": "Internet",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 110,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "DenyAll",
                         "properties": {
                             "protocol": "*",
                             "sourcePortRange": "*",
                             "destinationPortRange": "*",
-                            "sourceAddressPrefix": "[parameters('subnetAddressPrefix')]",
-                            "destinationAddressPrefix": "[parameters('subnetAddressPrefix')]",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
                             "access": "Deny",
-                            "priority": 100,
+                            "priority": 4096,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "AllowAzureLB",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "AzureLoadBalancer",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 4000,
                             "direction": "Inbound"
                         }
                     }
