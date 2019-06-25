@@ -46,7 +46,7 @@
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIpAddresses', variables('public-ip-address-name'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('existing-vnet-name'),variables('bastion-subnet-name'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('existing-vnet-name'), variables('bastion-subnet-name'))]"
             ],
             "properties": {
                 "ipConfigurations": [
@@ -54,7 +54,7 @@
                         "name": "IpConf",
                         "properties": {
                             "subnet": {
-                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets',parameters('existing-vnet-name'),variables('bastion-subnet-name'))]"
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('existing-vnet-name'), variables('bastion-subnet-name'))]"
                             },
                             "publicIPAddress": {
                                 "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('public-ip-address-name'))]"
