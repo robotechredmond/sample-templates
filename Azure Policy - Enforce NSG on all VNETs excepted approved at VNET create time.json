@@ -1,0 +1,43 @@
+{
+    "mode": "Indexed",
+    "policyRule": {
+        "if": {
+            "allOf": [
+                {
+                    "field": "type",
+                    "equals": "Microsoft.Network/virtualNetworks"
+                },
+                {
+                    "anyOf": [
+                        {
+                            "value": "[length(field('Microsoft.Network/virtualNetworks/subnets'))]",
+                            "greater": 1
+                        },
+                        {
+                            "allOf": [
+                                {
+                                    "field": "Microsoft.Network/virtualNetworks/subnets[*].name",
+                                    "notIn": [
+                                        "azurebastionsubnet",
+                                        "gatewaysubnet",
+                                        "azurefirewallsubnet"
+                                    ]
+                                },
+                                {
+                                    "not": {
+                                        "field": "Microsoft.Network/virtualNetworks/subnets[*].networkSecurityGroup.id",
+                                        "exists": "true"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "then": {
+            "effect": "deny"
+        }
+    },
+    "parameters": {}
+}
