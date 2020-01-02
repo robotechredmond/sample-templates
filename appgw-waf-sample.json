@@ -1,0 +1,149 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "appgw-name": {
+            "type": "String",
+            "metadata": {
+                "description": "Name of Application Gateway resource"
+            }
+        },
+        "subnet-id": {
+             "type": "String",
+             "metadata": {
+                 "description": "Azure Resource Id for Virtual Network Subnet to which Application Gateway will be provisioned"
+             }
+        },
+        "pip-id": {
+            "type": "String",
+            "metadata": {
+                "description": "Azure Resource Id for Public IP Address resource used for Application Gateway IP configuration"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/applicationGateways",
+            "apiVersion": "2019-09-01",
+            "name": "[parameters('appgw-name')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "sku": {
+                    "name": "WAF_v2",
+                    "tier": "WAF_v2"
+                },
+                "gatewayIPConfigurations": [
+                    {
+                        "name": "appGatewayIpConfig",
+                        "properties": {
+                            "subnet": {
+                                "id": "[parameters('subnet-id')]"
+                            }
+                        }
+                    }
+                ],
+                "sslCertificates": [],
+                "trustedRootCertificates": [],
+                "frontendIPConfigurations": [
+                    {
+                        "name": "appGwPublicFrontendIp",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[parameters('pip-id')]"
+                            }
+                        }
+                    }
+                ],
+                "frontendPorts": [
+                    {
+                        "name": "port_80",
+                        "properties": {
+                            "port": 80
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[concat(parameters('appgw-name'), '-be-01')]",
+                        "properties": {
+                            "backendAddresses": []
+                        }
+                    }
+                ],
+                "backendHttpSettingsCollection": [
+                    {
+                        "name": "http-setting",
+                        "properties": {
+                            "port": 80,
+                            "protocol": "Http",
+                            "cookieBasedAffinity": "Disabled",
+                            "pickHostNameFromBackendAddress": false,
+                            "requestTimeout": 20
+                        }
+                    }
+                ],
+                "httpListeners": [
+                    {
+                        "name": "web",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', parameters('appgw-name')), '/frontendIPConfigurations/appGwPublicFrontendIp')]"
+                            },
+                            "frontendPort": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', parameters('appgw-name')), '/frontendPorts/port_80')]"
+                            },
+                            "protocol": "Http",
+                            "hostNames": [],
+                            "requireServerNameIndication": false
+                        }
+                    }
+                ],
+                "urlPathMaps": [],
+                "requestRoutingRules": [
+                    {
+                        "name": "web-rule01",
+                        "properties": {
+                            "ruleType": "Basic",
+                            "httpListener": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', parameters('appgw-name')), '/httpListeners/web')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', parameters('appgw-name')), concat('/backendAddressPools/', parameters('appgw-name'), '-be-01'))]"
+                            },
+                            "backendHttpSettings": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', parameters('appgw-name')), '/backendHttpSettingsCollection/http-setting')]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [],
+                "rewriteRuleSets": [],
+                "redirectConfigurations": [],
+                "webApplicationFirewallConfiguration": {
+                    "enabled": true,
+                    "firewallMode": "Prevention",
+                    "ruleSetType": "OWASP",
+                    "ruleSetVersion": "3.0",
+                    "disabledRuleGroups": [],
+                    "exclusions": [
+                        {
+                            "matchVariable": "RequestArgNames",
+                            "selectorMatchOperator": "Equals",
+                            "selector": "customer.displayName"
+                        }
+                    ],
+                    "requestBodyCheck": true,
+                    "maxRequestBodySizeInKb": 128,
+                    "fileUploadLimitInMb": 100
+                },
+                "enableHttp2": false,
+                "autoscaleConfiguration": {
+                    "minCapacity": 1,
+                    "maxCapacity": 10
+                }
+            }
+        }
+    ]
+}
